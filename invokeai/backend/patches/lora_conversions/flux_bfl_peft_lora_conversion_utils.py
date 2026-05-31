@@ -52,8 +52,16 @@ _BFL_FLUX_BLOCK_PREFIXES = (
 _DOUBLE_BLOCK_RE = re.compile(r"^double_blocks\.(\d+)\.(.+)$")
 _SINGLE_BLOCK_RE = re.compile(r"^single_blocks\.(\d+)\.(.+)$")
 
-# Weight key suffixes used by PEFT LoRA in BFL format.
-_BFL_PEFT_LORA_SUFFIXES = ("lora_A.weight", "lora_B.weight")
+# Weight key suffixes used by PEFT LoRA in BFL format. Also accept kohya-style suffixes
+# (lora_down/lora_up/lora_mid), which some trainers (e.g. OneTrainer) emit under a BFL prefix. These
+# are handled by the same grouping + any_lora_layer_from_state_dict path as the PEFT suffixes.
+_BFL_PEFT_LORA_SUFFIXES = (
+    "lora_A.weight",
+    "lora_B.weight",
+    "lora_down.weight",
+    "lora_up.weight",
+    "lora_mid.weight",
+)
 
 # Weight key suffixes used by LyCORIS algorithms (LoKR, LoHA, etc.) in BFL format.
 # These are single-component suffixes (no dot), unlike the two-component PEFT suffixes.
@@ -76,8 +84,9 @@ _BFL_LYCORIS_WEIGHT_SUFFIXES = (
     # Common to all LyCORIS algorithms
     "alpha",
     "dora_scale",
-    # Full/Diff
+    # Full/Diff (diff = full weight delta, diff_b = full bias delta)
     "diff",
+    "diff_b",
 )
 
 # All recognized BFL weight key suffixes (both PEFT and LyCORIS).

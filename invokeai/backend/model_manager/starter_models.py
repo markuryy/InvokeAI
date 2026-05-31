@@ -161,6 +161,24 @@ flux_dev = StarterModel(
     type=ModelType.Main,
     dependencies=[t5_base_encoder, flux_vae, clip_l_encoder],
 )
+chroma_hd_quantized = StarterModel(
+    name="Chroma1-HD (GGUF Q8)",
+    base=BaseModelType.Chroma,
+    source="silveroxides/Chroma-GGUF::Chroma1-HD/Chroma1-HD-Q8_0.gguf",
+    description="Chroma1-HD transformer (de-distilled FLUX.1-schnell), GGUF Q8 quantized. "
+    "Total size with dependencies: ~20GB",
+    type=ModelType.Main,
+    dependencies=[t5_base_encoder, flux_vae],
+)
+chroma_hd = StarterModel(
+    name="Chroma1-HD",
+    base=BaseModelType.Chroma,
+    source="lodestones/Chroma1-HD::Chroma1-HD.safetensors",
+    description="Chroma1-HD transformer (de-distilled FLUX.1-schnell) in bfloat16. "
+    "Total size with dependencies: ~28GB",
+    type=ModelType.Main,
+    dependencies=[t5_base_encoder, flux_vae],
+)
 flux_kontext = StarterModel(
     name="FLUX.1 Kontext dev",
     base=BaseModelType.Flux,
@@ -1582,6 +1600,8 @@ STARTER_MODELS: list[StarterModel] = [
     flux_dev_quantized,
     flux_schnell,
     flux_dev,
+    chroma_hd_quantized,
+    chroma_hd,
     sd35_medium,
     sd35_large,
     cyberrealistic_sd1,
@@ -1800,11 +1820,18 @@ anima_bundle: list[StarterModel] = [
     t5_base_encoder,
 ]
 
+chroma_bundle: list[StarterModel] = [
+    chroma_hd_quantized,
+    flux_vae,
+    t5_base_encoder,
+]
+
 STARTER_BUNDLES: dict[str, StarterModelBundle] = {
     BaseModelType.StableDiffusion1: StarterModelBundle(name="Stable Diffusion 1.5", models=sd1_bundle),
     BaseModelType.StableDiffusionXL: StarterModelBundle(name="SDXL", models=sdxl_bundle),
     BaseModelType.Flux: StarterModelBundle(name="FLUX.1 dev", models=flux_bundle),
     BaseModelType.Flux2: StarterModelBundle(name="FLUX.2 Klein", models=flux2_klein_bundle),
+    BaseModelType.Chroma: StarterModelBundle(name="Chroma1-HD", models=chroma_bundle),
     BaseModelType.ZImage: StarterModelBundle(name="Z-Image Turbo", models=zimage_bundle),
     BaseModelType.QwenImage: StarterModelBundle(name="Qwen Image", models=qwen_image_bundle),
     BaseModelType.Anima: StarterModelBundle(name="Anima", models=anima_bundle),

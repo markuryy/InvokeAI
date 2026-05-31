@@ -48,6 +48,8 @@ class BaseModelType(str, Enum):
     """Indicates the model is associated with FLUX.1 model architecture, including FLUX Dev, Schnell and Fill."""
     Flux2 = "flux2"
     """Indicates the model is associated with FLUX.2 model architecture, including FLUX2 Klein."""
+    Chroma = "chroma"
+    """Indicates the model is associated with the Chroma model architecture (a de-distilled FLUX.1-schnell variant)."""
     CogView4 = "cogview4"
     """Indicates the model is associated with CogView 4 model architecture."""
     ZImage = "z-image"

@@ -31,6 +31,11 @@ class LoRALayer(LoRALayerBase):
             values.get("bias_indices", None), values.get("bias_values", None), values.get("bias_size", None)
         )
 
+        # Some LoRAs (e.g. OneTrainer-trained Chroma/FLUX LoRAs) pair a low-rank weight delta with a
+        # full-rank bias delta ('diff_b'). Apply it as a dense additive bias.
+        if bias is None and "diff_b" in values:
+            bias = values["diff_b"]
+
         layer = cls(
             up=values["lora_up.weight"],
             down=values["lora_down.weight"],
@@ -47,6 +52,7 @@ class LoRALayer(LoRALayerBase):
                 "bias_indices",
                 "bias_values",
                 "bias_size",
+                "diff_b",
                 # Layer-specific keys.
                 "lora_up.weight",
                 "lora_down.weight",

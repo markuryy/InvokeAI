@@ -8,6 +8,7 @@ import { positivePromptAddedToHistory, selectPositivePrompt } from 'features/con
 import type { BaseModelType } from 'features/nodes/types/common';
 import { prepareLinearUIBatch } from 'features/nodes/util/graph/buildLinearBatchConfig';
 import { buildAnimaGraph } from 'features/nodes/util/graph/generation/buildAnimaGraph';
+import { buildChromaGraph } from 'features/nodes/util/graph/generation/buildChromaGraph';
 import { buildCogView4Graph } from 'features/nodes/util/graph/generation/buildCogView4Graph';
 import { buildExternalGraph } from 'features/nodes/util/graph/generation/buildExternalGraph';
 import { buildFLUXGraph } from 'features/nodes/util/graph/generation/buildFLUXGraph';
@@ -52,6 +53,8 @@ const enqueueGenerate = async (store: AppStore, prepend: boolean) => {
       case 'flux':
       case 'flux2':
         return await buildFLUXGraph(graphBuilderArg);
+      case 'chroma':
+        return await buildChromaGraph(graphBuilderArg);
       case 'cogview4':
         return await buildCogView4Graph(graphBuilderArg);
       case 'qwen-image':

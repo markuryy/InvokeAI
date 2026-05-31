@@ -34,6 +34,7 @@ import {
   setAnimaScheduler,
   setCfgRescaleMultiplier,
   setCfgScale,
+  setChromaSchedule,
   setClipSkip,
   setFluxDypeExponent,
   setFluxDypePreset,
@@ -73,6 +74,7 @@ import { modelSelected } from 'features/parameters/store/actions';
 import type {
   ParameterCFGRescaleMultiplier,
   ParameterCFGScale,
+  ParameterChromaSchedule,
   ParameterCLIPSkip,
   ParameterFluxDypeExponent,
   ParameterFluxDypePreset,
@@ -99,6 +101,7 @@ import {
   zLoRAWeight,
   zParameterCFGRescaleMultiplier,
   zParameterCFGScale,
+  zParameterChromaSchedule,
   zParameterCLIPSkip,
   zParameterFluxDypeExponent,
   zParameterFluxDypePreset,
@@ -405,6 +408,26 @@ const Guidance: SingleMetadataHandler<ParameterGuidance> = {
   ValueComponent: ({ value }: SingleMetadataValueProps<ParameterGuidance>) => <MetadataPrimitiveValue value={value} />,
 };
 //#endregion Guidance
+
+//#region ChromaSchedule
+const ChromaSchedule: SingleMetadataHandler<ParameterChromaSchedule> = {
+  [SingleMetadataKey]: true,
+  type: 'ChromaSchedule',
+  parse: (metadata, _store) => {
+    const raw = getProperty(metadata, 'chroma_schedule');
+    const parsed = zParameterChromaSchedule.parse(raw);
+    return Promise.resolve(parsed);
+  },
+  recall: (value, store) => {
+    store.dispatch(setChromaSchedule(value));
+  },
+  i18nKey: 'metadata.chromaSchedule',
+  LabelComponent: MetadataLabel,
+  ValueComponent: ({ value }: SingleMetadataValueProps<ParameterChromaSchedule>) => (
+    <MetadataPrimitiveValue value={value} />
+  ),
+};
+//#endregion ChromaSchedule
 
 //#region FluxDypePreset
 const FluxDypePreset: SingleMetadataHandler<ParameterFluxDypePreset> = {
@@ -1628,6 +1651,7 @@ export const ImageMetadataHandlers = {
   CFGRescaleMultiplier,
   CLIPSkip,
   Guidance,
+  ChromaSchedule,
   FluxDypePreset,
   FluxDypeScale,
   FluxDypeExponent,

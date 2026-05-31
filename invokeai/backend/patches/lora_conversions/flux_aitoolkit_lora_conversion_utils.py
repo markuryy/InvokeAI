@@ -51,6 +51,15 @@ def is_state_dict_likely_in_flux_aitoolkit_format(
     if any(k.endswith(_LYCORIS_SUFFIXES) for k in state_dict.keys() if isinstance(k, str)):
         return False
 
+    # AIToolkit produces standard PEFT LoRA keys (lora_A.weight / lora_B.weight). LoRAs that use
+    # kohya-style suffixes (lora_down/lora_up) or carry diff/diff_b layers are a different (BFL) format
+    # and must not be claimed here - otherwise the converter crashes trying to group their keys.
+    has_peft_keys = any(
+        k.endswith(("lora_A.weight", "lora_B.weight")) for k in state_dict.keys() if isinstance(k, str)
+    )
+    if not has_peft_keys:
+        return False
+
     if metadata:
         try:
             software = json.loads(metadata.get("software", "{}"))

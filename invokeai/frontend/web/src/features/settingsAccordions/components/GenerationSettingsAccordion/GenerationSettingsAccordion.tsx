@@ -7,6 +7,7 @@ import { selectLoRAsSlice } from 'features/controlLayers/store/lorasSlice';
 import {
   selectFluxDypePreset,
   selectIsAnima,
+  selectIsChroma,
   selectIsCogView4,
   selectIsExternal,
   selectIsFLUX,
@@ -21,6 +22,7 @@ import { LoRAList } from 'features/lora/components/LoRAList';
 import LoRASelect from 'features/lora/components/LoRASelect';
 import ParamAnimaScheduler from 'features/parameters/components/Core/ParamAnimaScheduler';
 import ParamCFGScale from 'features/parameters/components/Core/ParamCFGScale';
+import ParamChromaScheduler from 'features/parameters/components/Core/ParamChromaScheduler';
 import ParamFluxDypeExponent from 'features/parameters/components/Core/ParamFluxDypeExponent';
 import ParamFluxDypePreset from 'features/parameters/components/Core/ParamFluxDypePreset';
 import ParamFluxDypeScale from 'features/parameters/components/Core/ParamFluxDypeScale';
@@ -49,6 +51,7 @@ export const GenerationSettingsAccordion = memo(() => {
   const modelConfig = useSelectedModelConfig();
   const isFLUX = useAppSelector(selectIsFLUX);
   const isFlux2 = useAppSelector(selectIsFlux2);
+  const isChroma = useAppSelector(selectIsChroma);
   const isSD3 = useAppSelector(selectIsSD3);
   const isCogView4 = useAppSelector(selectIsCogView4);
   const isZImage = useAppSelector(selectIsZImage);
@@ -100,12 +103,14 @@ export const GenerationSettingsAccordion = memo(() => {
                 {!isExternal &&
                   !isFLUX &&
                   !isFlux2 &&
+                  !isChroma &&
                   !isSD3 &&
                   !isCogView4 &&
                   !isZImage &&
                   !isQwenImage &&
                   !isAnima && <ParamScheduler />}
                 {!isExternal && (isFLUX || isFlux2) && <ParamFluxScheduler />}
+                {!isExternal && isChroma && <ParamChromaScheduler />}
                 {!isExternal && isZImage && <ParamZImageScheduler />}
                 {!isExternal && isAnima && <ParamAnimaScheduler />}
                 {modelSupportsSteps && <ParamSteps />}

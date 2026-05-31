@@ -5,6 +5,7 @@ import { createMemoizedSelector } from 'app/store/createMemoizedSelector';
 import { useAppSelector } from 'app/store/storeHooks';
 import {
   selectIsAnima,
+  selectIsChroma,
   selectIsExternal,
   selectIsFLUX,
   selectIsFlux2,
@@ -49,6 +50,7 @@ export const AdvancedSettingsAccordion = memo(() => {
   const { currentData: vaeConfig } = useGetModelConfigQuery(vaeKey ?? skipToken);
   const isFLUX = useAppSelector(selectIsFLUX);
   const isFlux2 = useAppSelector(selectIsFlux2);
+  const isChroma = useAppSelector(selectIsChroma);
   const isSD3 = useAppSelector(selectIsSD3);
   const isZImage = useAppSelector(selectIsZImage);
   const isExternal = useAppSelector(selectIsExternal);
@@ -109,11 +111,11 @@ export const AdvancedSettingsAccordion = memo(() => {
       <Flex gap={4} alignItems="center" p={4} flexDir="column" data-testid="advanced-settings-accordion">
         {!isZImage && !isAnima && !isFlux2 && !isQwenImage && (
           <Flex gap={4} w="full">
-            {isFLUX ? <ParamFLUXVAEModelSelect /> : <ParamVAEModelSelect />}
-            {!isFLUX && !isSD3 && <ParamVAEPrecision />}
+            {isFLUX || isChroma ? <ParamFLUXVAEModelSelect /> : <ParamVAEModelSelect />}
+            {!isFLUX && !isChroma && !isSD3 && <ParamVAEPrecision />}
           </Flex>
         )}
-        {!isFLUX && !isFlux2 && !isSD3 && !isZImage && !isQwenImage && !isAnima && (
+        {!isFLUX && !isChroma && !isFlux2 && !isSD3 && !isZImage && !isQwenImage && !isAnima && (
           <>
             <FormControlGroup formLabelProps={formLabelProps}>
               <ParamClipSkip />
@@ -141,6 +143,11 @@ export const AdvancedSettingsAccordion = memo(() => {
         {isFlux2 && (
           <FormControlGroup>
             <ParamFlux2KleinModelSelect />
+          </FormControlGroup>
+        )}
+        {isChroma && (
+          <FormControlGroup>
+            <ParamT5EncoderModelSelect />
           </FormControlGroup>
         )}
         {isSD3 && (

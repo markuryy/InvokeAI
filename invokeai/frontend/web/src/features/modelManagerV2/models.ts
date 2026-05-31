@@ -160,6 +160,7 @@ export const MODEL_BASE_TO_COLOR: Record<BaseModelType, string> = {
   'sdxl-refiner': 'invokeBlue',
   flux: 'gold',
   flux2: 'gold',
+  chroma: 'pink',
   cogview4: 'red',
   'qwen-image': 'orange',
   'z-image': 'cyan',
@@ -207,6 +208,7 @@ export const MODEL_BASE_TO_LONG_NAME: Record<BaseModelType, string> = {
   'sdxl-refiner': 'Stable Diffusion XL Refiner',
   flux: 'FLUX',
   flux2: 'FLUX.2',
+  chroma: 'Chroma',
   cogview4: 'CogView4',
   'qwen-image': 'Qwen Image',
   'z-image': 'Z-Image',
@@ -227,6 +229,7 @@ export const MODEL_BASE_TO_SHORT_NAME: Record<BaseModelType, string> = {
   'sdxl-refiner': 'SDXLR',
   flux: 'FLUX',
   flux2: 'FLUX.2',
+  chroma: 'Chroma',
   cogview4: 'CogView4',
   'qwen-image': 'QwenImg',
   'z-image': 'Z-Image',
@@ -277,6 +280,25 @@ export const MODEL_FORMAT_TO_LONG_NAME: Record<ModelFormat, string> = {
   unknown: 'Unknown',
 };
 
+/**
+ * Returns whether a LoRA of the given base is compatible with a main model of the given base.
+ *
+ * Normally a LoRA must match the main model's base exactly. Chroma is an exception: it shares FLUX's
+ * attention/MLP block structure and uses FLUX-format LoRAs (which probe as 'flux'), and the two are
+ * cross-compatible in practice. Chroma-specific LoRAs are also indistinguishable from FLUX LoRAs at
+ * the state-dict level, so they too probe as 'flux'. FLUX-only layers a LoRA might carry are skipped
+ * at patch time.
+ */
+export const isLoRACompatibleWithMainModelBase = (modelBase: BaseModelType, loraBase: BaseModelType): boolean => {
+  if (modelBase === loraBase) {
+    return true;
+  }
+  if (modelBase === 'chroma' && loraBase === 'flux') {
+    return true;
+  }
+  return false;
+};
+
 export const SUPPORTS_OPTIMIZED_DENOISING_BASE_MODELS: BaseModelType[] = ['flux', 'sd-3'];
 
 export const SUPPORTS_REF_IMAGES_BASE_MODELS: BaseModelType[] = ['sd-1', 'sdxl', 'flux', 'flux2', 'qwen-image'];
@@ -290,4 +312,5 @@ export const SUPPORTS_NEGATIVE_PROMPT_BASE_MODELS: BaseModelType[] = [
   'sd-3',
   'z-image',
   'anima',
+  'chroma',
 ];

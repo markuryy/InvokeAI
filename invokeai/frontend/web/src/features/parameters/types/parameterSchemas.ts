@@ -3,6 +3,7 @@ import { roundToMultiple } from 'common/util/roundDownToMultiple';
 import { buildZodTypeGuard } from 'common/util/zodUtils';
 import {
   zAnimaSchedulerField,
+  zChromaScheduleField,
   zExternalModelIdentifierField,
   zFluxDypeExponentField,
   zFluxDypePresetField,
@@ -74,6 +75,11 @@ export type ParameterScheduler = z.infer<typeof zParameterScheduler>;
 // #region Flux Scheduler
 export const [zParameterFluxScheduler, isParameterFluxScheduler] = buildParameter(zFluxSchedulerField);
 export type ParameterFluxScheduler = z.infer<typeof zParameterFluxScheduler>;
+// #endregion
+
+// #region Chroma Schedule
+export const [zParameterChromaSchedule, isParameterChromaSchedule] = buildParameter(zChromaScheduleField);
+export type ParameterChromaSchedule = z.infer<typeof zParameterChromaSchedule>;
 // #endregion
 
 // #region Z-Image Scheduler

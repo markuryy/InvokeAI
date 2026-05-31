@@ -62,6 +62,7 @@ from invokeai.backend.model_manager.configs.lora import (
 from invokeai.backend.model_manager.configs.main import (
     Main_BnBNF4_FLUX_Config,
     Main_Checkpoint_Anima_Config,
+    Main_Checkpoint_Chroma_Config,
     Main_Checkpoint_Flux2_Config,
     Main_Checkpoint_FLUX_Config,
     Main_Checkpoint_SD1_Config,
@@ -79,6 +80,7 @@ from invokeai.backend.model_manager.configs.main import (
     Main_Diffusers_SDXL_Config,
     Main_Diffusers_SDXLRefiner_Config,
     Main_Diffusers_ZImage_Config,
+    Main_GGUF_Chroma_Config,
     Main_GGUF_Flux2_Config,
     Main_GGUF_FLUX_Config,
     Main_GGUF_QwenImage_Config,
@@ -182,6 +184,7 @@ AnyModelConfig = Annotated[
         Annotated[Main_Checkpoint_SDXL_Config, Main_Checkpoint_SDXL_Config.get_tag()],
         Annotated[Main_Checkpoint_SDXLRefiner_Config, Main_Checkpoint_SDXLRefiner_Config.get_tag()],
         Annotated[Main_Checkpoint_Flux2_Config, Main_Checkpoint_Flux2_Config.get_tag()],
+        Annotated[Main_Checkpoint_Chroma_Config, Main_Checkpoint_Chroma_Config.get_tag()],
         Annotated[Main_Checkpoint_FLUX_Config, Main_Checkpoint_FLUX_Config.get_tag()],
         Annotated[Main_Checkpoint_ZImage_Config, Main_Checkpoint_ZImage_Config.get_tag()],
         Annotated[Main_Checkpoint_Anima_Config, Main_Checkpoint_Anima_Config.get_tag()],
@@ -190,6 +193,7 @@ AnyModelConfig = Annotated[
         # that will reject FLUX.1 models, but FLUX.1 validation may incorrectly match FLUX.2 models
         Annotated[Main_BnBNF4_FLUX_Config, Main_BnBNF4_FLUX_Config.get_tag()],
         Annotated[Main_GGUF_Flux2_Config, Main_GGUF_Flux2_Config.get_tag()],
+        Annotated[Main_GGUF_Chroma_Config, Main_GGUF_Chroma_Config.get_tag()],
         Annotated[Main_GGUF_FLUX_Config, Main_GGUF_FLUX_Config.get_tag()],
         Annotated[Main_GGUF_QwenImage_Config, Main_GGUF_QwenImage_Config.get_tag()],
         Annotated[Main_GGUF_ZImage_Config, Main_GGUF_ZImage_Config.get_tag()],

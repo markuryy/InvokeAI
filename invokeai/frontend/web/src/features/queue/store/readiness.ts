@@ -22,7 +22,7 @@ import {
 import type { DynamicPromptsState } from 'features/dynamicPrompts/store/dynamicPromptsSlice';
 import { selectDynamicPromptsSlice } from 'features/dynamicPrompts/store/dynamicPromptsSlice';
 import { getShouldProcessPrompt } from 'features/dynamicPrompts/util/getShouldProcessPrompt';
-import { SUPPORTS_REF_IMAGES_BASE_MODELS } from 'features/modelManagerV2/models';
+import { isLoRACompatibleWithMainModelBase, SUPPORTS_REF_IMAGES_BASE_MODELS } from 'features/modelManagerV2/models';
 import { $templates } from 'features/nodes/store/nodesSlice';
 import { selectNodesSlice } from 'features/nodes/store/selectors';
 import type { NodesState, Templates } from 'features/nodes/store/types';
@@ -287,6 +287,14 @@ export const getReasonsWhyCannotEnqueueGenerateTab = (arg: {
     if (!params.fluxVAE) {
       reasons.push({ content: i18n.t('parameters.invoke.noFLUXVAEModelSelected') });
     }
+  } else if (model.base === 'chroma') {
+    // Chroma uses the T5 encoder and the FLUX VAE (no CLIP).
+    if (!params.t5EncoderModel) {
+      reasons.push({ content: i18n.t('parameters.invoke.noT5EncoderModelSelected') });
+    }
+    if (!params.fluxVAE) {
+      reasons.push({ content: i18n.t('parameters.invoke.noFLUXVAEModelSelected') });
+    }
   }
 
   if (model?.base === 'flux2' && model.format !== 'diffusers') {
@@ -338,7 +346,7 @@ export const getReasonsWhyCannotEnqueueGenerateTab = (arg: {
 
   if (model) {
     for (const lora of loras.filter(({ isEnabled }) => isEnabled === true)) {
-      if (model.base !== lora.model.base) {
+      if (!isLoRACompatibleWithMainModelBase(model.base, lora.model.base)) {
         reasons.push({ content: i18n.t('parameters.invoke.incompatibleLoRAs') });
         // Just add the warning once.
         break;
@@ -483,7 +491,7 @@ const getReasonsWhyCannotEnqueueUpscaleTab = (arg: {
     }
     if (model) {
       for (const lora of loras.filter(({ isEnabled }) => isEnabled === true)) {
-        if (model.base !== lora.model.base) {
+        if (!isLoRACompatibleWithMainModelBase(model.base, lora.model.base)) {
           reasons.push({ content: i18n.t('parameters.invoke.incompatibleLoRAs') });
           // Just add the warning once.
           break;
@@ -609,6 +617,57 @@ export const getReasonsWhyCannotEnqueueCanvasTab = (arg: {
         reasons.push({
           content: i18n.t('parameters.invoke.modelIncompatibleScaledBboxHeight', {
             model: 'FLUX',
+            height: bbox.scaledSize.height,
+            multiple: gridSize,
+          }),
+        });
+      }
+    }
+  } else if (model?.base === 'chroma') {
+    // Chroma uses the T5 encoder and the FLUX VAE (no CLIP), and shares FLUX's bbox grid size.
+    if (!params.t5EncoderModel) {
+      reasons.push({ content: i18n.t('parameters.invoke.noT5EncoderModelSelected') });
+    }
+    if (!params.fluxVAE) {
+      reasons.push({ content: i18n.t('parameters.invoke.noFLUXVAEModelSelected') });
+    }
+
+    const { bbox } = canvas;
+    const gridSize = getGridSize('flux');
+
+    if (bbox.scaleMethod === 'none') {
+      if (bbox.rect.width % gridSize !== 0) {
+        reasons.push({
+          content: i18n.t('parameters.invoke.modelIncompatibleBboxWidth', {
+            model: 'Chroma',
+            width: bbox.rect.width,
+            multiple: gridSize,
+          }),
+        });
+      }
+      if (bbox.rect.height % gridSize !== 0) {
+        reasons.push({
+          content: i18n.t('parameters.invoke.modelIncompatibleBboxHeight', {
+            model: 'Chroma',
+            height: bbox.rect.height,
+            multiple: gridSize,
+          }),
+        });
+      }
+    } else {
+      if (bbox.scaledSize.width % gridSize !== 0) {
+        reasons.push({
+          content: i18n.t('parameters.invoke.modelIncompatibleScaledBboxWidth', {
+            model: 'Chroma',
+            width: bbox.scaledSize.width,
+            multiple: gridSize,
+          }),
+        });
+      }
+      if (bbox.scaledSize.height % gridSize !== 0) {
+        reasons.push({
+          content: i18n.t('parameters.invoke.modelIncompatibleScaledBboxHeight', {
+            model: 'Chroma',
             height: bbox.scaledSize.height,
             multiple: gridSize,
           }),
@@ -801,7 +860,7 @@ export const getReasonsWhyCannotEnqueueCanvasTab = (arg: {
 
   if (model) {
     for (const lora of loras.filter(({ isEnabled }) => isEnabled === true)) {
-      if (model.base !== lora.model.base) {
+      if (!isLoRACompatibleWithMainModelBase(model.base, lora.model.base)) {
         reasons.push({ content: i18n.t('parameters.invoke.incompatibleLoRAs') });
         // Just add the warning once.
         break;

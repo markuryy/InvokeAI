@@ -45,7 +45,7 @@ import {
   initialIPAdapter,
   initialQwenImageReferenceImage,
 } from 'features/controlLayers/store/util';
-import { SUPPORTS_REF_IMAGES_BASE_MODELS } from 'features/modelManagerV2/models';
+import { isLoRACompatibleWithMainModelBase, SUPPORTS_REF_IMAGES_BASE_MODELS } from 'features/modelManagerV2/models';
 import { zModelIdentifierField } from 'features/nodes/types/common';
 import { modelSelected } from 'features/parameters/store/actions';
 import { zParameterModel } from 'features/parameters/types/parameterSchemas';
@@ -92,7 +92,7 @@ export const addModelSelectedListener = (startAppListening: AppStartListening) =
 
         // handle incompatible loras
         state.loras.loras.forEach((lora) => {
-          if (lora.model.base !== newBase) {
+          if (!isLoRACompatibleWithMainModelBase(newBase, lora.model.base)) {
             dispatch(loraIsEnabledChanged({ id: lora.id, isEnabled: false }));
             modelsUpdatedDisabledOrCleared += 1;
           }

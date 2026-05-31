@@ -93,6 +93,9 @@ class MainModelDefaultSettings(BaseModel):
                     return cls(steps=4, cfg_scale=1.0, width=1024, height=1024)
             case BaseModelType.QwenImage:
                 return cls(steps=40, cfg_scale=4.0, width=1024, height=1024)
+            case BaseModelType.Chroma:
+                # Chroma is de-distilled and uses CFG. Recommended defaults: ~26 steps, cfg ~4.
+                return cls(steps=26, cfg_scale=4.0, width=1024, height=1024)
             case _:
                 # TODO(psyche): Do we want defaults for other base types?
                 return None
@@ -337,6 +340,21 @@ def _is_flux2_model(state_dict: dict[str | int, Any]) -> bool:
     return False
 
 
+def _is_chroma_model(state_dict: dict[str | int, Any]) -> bool:
+    """Check if a state dict is a Chroma model.
+
+    Chroma is a de-distilled FLUX.1-schnell variant. It shares FLUX's double/single stream blocks
+    (so it has the FLUX `key_norm.scale` markers), but replaces FLUX's per-block modulation layers
+    and time/vector/guidance embedders with a single `distilled_guidance_layer` Approximator network.
+    The presence of `distilled_guidance_layer.*` keys uniquely identifies Chroma.
+    """
+    chroma_keys = {
+        "distilled_guidance_layer.in_proj.weight",
+        "model.diffusion_model.distilled_guidance_layer.in_proj.weight",
+    }
+    return any(key in state_dict for key in chroma_keys)
+
+
 def _filename_suggests_base(name: str) -> bool:
     """Check if a model name/filename suggests it is a Base (undistilled) variant.
 
@@ -504,6 +522,10 @@ class Main_Checkpoint_FLUX_Config(Checkpoint_Config_Base, Main_Config_Base, Conf
         if _is_flux2_model(state_dict):
             raise NotAMatchError("model is a FLUX.2 model, not FLUX.1")
 
+        # Exclude Chroma models - they share FLUX's block markers but have their own config class
+        if _is_chroma_model(state_dict):
+            raise NotAMatchError("model is a Chroma model, not FLUX.1")
+
     @classmethod
     def _get_variant_or_raise(cls, mod: ModelOnDisk) -> FluxVariantType:
         # FLUX Model variant types are distinguished by input channels and the presence of certain keys.
@@ -535,6 +557,68 @@ class Main_Checkpoint_FLUX_Config(Checkpoint_Config_Base, Main_Config_Base, Conf
         has_ggml_tensors = _has_ggml_tensors(mod.load_state_dict())
         if has_ggml_tensors:
             raise NotAMatchError("state dict looks like GGUF quantized")
+
+
+class Main_Checkpoint_Chroma_Config(Checkpoint_Config_Base, Main_Config_Base, Config_Base):
+    """Model config for Chroma checkpoint models (a de-distilled FLUX.1-schnell variant)."""
+
+    format: Literal[ModelFormat.Checkpoint] = Field(default=ModelFormat.Checkpoint)
+    base: Literal[BaseModelType.Chroma] = Field(default=BaseModelType.Chroma)
+
+    @classmethod
+    def from_model_on_disk(cls, mod: ModelOnDisk, override_fields: dict[str, Any]) -> Self:
+        raise_if_not_file(mod)
+        raise_for_override_fields(cls, override_fields)
+        cls._validate_looks_like_main_model(mod)
+        cls._validate_is_chroma(mod)
+        cls._validate_does_not_look_like_gguf_quantized(mod)
+        return cls(**override_fields)
+
+    @classmethod
+    def _validate_is_chroma(cls, mod: ModelOnDisk) -> None:
+        if not _is_chroma_model(mod.load_state_dict()):
+            raise NotAMatchError("state dict does not look like a Chroma model")
+
+    @classmethod
+    def _validate_looks_like_main_model(cls, mod: ModelOnDisk) -> None:
+        if not _has_main_keys(mod.load_state_dict()):
+            raise NotAMatchError("state dict does not look like a main model")
+
+    @classmethod
+    def _validate_does_not_look_like_gguf_quantized(cls, mod: ModelOnDisk):
+        if _has_ggml_tensors(mod.load_state_dict()):
+            raise NotAMatchError("state dict looks like GGUF quantized")
+
+
+class Main_GGUF_Chroma_Config(Checkpoint_Config_Base, Main_Config_Base, Config_Base):
+    """Model config for GGUF-quantized Chroma checkpoint models."""
+
+    format: Literal[ModelFormat.GGUFQuantized] = Field(default=ModelFormat.GGUFQuantized)
+    base: Literal[BaseModelType.Chroma] = Field(default=BaseModelType.Chroma)
+
+    @classmethod
+    def from_model_on_disk(cls, mod: ModelOnDisk, override_fields: dict[str, Any]) -> Self:
+        raise_if_not_file(mod)
+        raise_for_override_fields(cls, override_fields)
+        cls._validate_looks_like_main_model(mod)
+        cls._validate_looks_like_gguf_quantized(mod)
+        cls._validate_is_chroma(mod)
+        return cls(**override_fields)
+
+    @classmethod
+    def _validate_is_chroma(cls, mod: ModelOnDisk) -> None:
+        if not _is_chroma_model(mod.load_state_dict()):
+            raise NotAMatchError("state dict does not look like a Chroma model")
+
+    @classmethod
+    def _validate_looks_like_main_model(cls, mod: ModelOnDisk) -> None:
+        if not _has_main_keys(mod.load_state_dict()):
+            raise NotAMatchError("state dict does not look like a main model")
+
+    @classmethod
+    def _validate_looks_like_gguf_quantized(cls, mod: ModelOnDisk) -> None:
+        if not _has_ggml_tensors(mod.load_state_dict()):
+            raise NotAMatchError("state dict does not look like GGUF quantized")
 
 
 class Main_Checkpoint_Flux2_Config(Checkpoint_Config_Base, Main_Config_Base, Config_Base):
@@ -675,6 +759,8 @@ class Main_GGUF_FLUX_Config(Checkpoint_Config_Base, Main_Config_Base, Config_Bas
 
         cls._validate_is_not_flux2(mod)
 
+        cls._validate_is_not_chroma(mod)
+
         variant = override_fields.pop("variant", None) or cls._get_variant_or_raise(mod)
 
         return cls(**override_fields, variant=variant)
@@ -711,6 +797,12 @@ class Main_GGUF_FLUX_Config(Checkpoint_Config_Base, Main_Config_Base, Config_Bas
         state_dict = mod.load_state_dict()
         if _is_flux2_model(state_dict):
             raise NotAMatchError("model is a FLUX.2 model, not FLUX.1")
+
+    @classmethod
+    def _validate_is_not_chroma(cls, mod: ModelOnDisk) -> None:
+        """Validate that this is NOT a Chroma model."""
+        if _is_chroma_model(mod.load_state_dict()):
+            raise NotAMatchError("model is a Chroma model, not FLUX.1")
 
 
 class Main_GGUF_Flux2_Config(Checkpoint_Config_Base, Main_Config_Base, Config_Base):

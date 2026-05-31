@@ -69,6 +69,10 @@ export type SchedulerField = z.infer<typeof zSchedulerField>;
 // Flux-specific scheduler options (Flow Matching schedulers)
 export const zFluxSchedulerField = z.enum(['euler', 'heun', 'lcm']);
 
+// Chroma-specific timestep schedule options. These control timestep placement (not the solver):
+// 'shifted' = FLUX-style resolution-dependent shift, 'linear' = even spacing (~shift=1), 'sine' = emphasize ends.
+export const zChromaScheduleField = z.enum(['shifted', 'linear', 'sine']);
+
 // Z-Image scheduler options (Flow Matching schedulers)
 // Note: LCM is only supported for Z-Image Turbo, not for Z-Image Base (undistilled)
 export const zZImageSchedulerField = z.enum(['euler', 'heun', 'lcm']);
@@ -95,6 +99,7 @@ export const zBaseModelType = z.enum([
   'sdxl-refiner',
   'flux',
   'flux2',
+  'chroma',
   'cogview4',
   'qwen-image',
   'z-image',
@@ -110,6 +115,7 @@ export const zMainModelBase = z.enum([
   'sdxl',
   'flux',
   'flux2',
+  'chroma',
   'cogview4',
   'qwen-image',
   'z-image',

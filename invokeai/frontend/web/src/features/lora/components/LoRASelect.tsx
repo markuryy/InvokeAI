@@ -31,6 +31,11 @@ const LoRASelect = () => {
       return EMPTY_ARRAY;
     }
     return modelConfigs.filter((model) => {
+      // Chroma shares FLUX's block structure and uses FLUX-format LoRAs (which probe as base 'flux').
+      // FLUX-only modulation layers are skipped at patch time, so FLUX LoRAs apply with tolerance.
+      if (currentBaseModel === 'chroma') {
+        return model.base === 'flux';
+      }
       if (model.base !== currentBaseModel) {
         return false;
       }

@@ -41,6 +41,7 @@ def test_controlnet_t2i_default_settings(model_name: str, preprocessor: str | No
         (BaseModelType.StableDiffusion2, {"width": 768, "height": 768}),
         (BaseModelType.StableDiffusionXL, {"width": 1024, "height": 1024}),
         (BaseModelType.StableDiffusionXLRefiner, None),
+        (BaseModelType.Chroma, {"width": 1024, "height": 1024, "steps": 26, "cfg_scale": 4.0}),
         (BaseModelType.Any, None),
     ],
 )
