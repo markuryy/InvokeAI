@@ -243,7 +243,8 @@ export const getDenoisingStartAndEnd = (state: RootState): { denoising_start: nu
       };
     }
     case 'flux':
-    case 'flux2': {
+    case 'flux2':
+    case 'chroma': {
       if (model.base === 'flux' && model.variant === 'dev_fill') {
         // This is a FLUX Fill model - we always denoise fully
         return {
@@ -251,9 +252,10 @@ export const getDenoisingStartAndEnd = (state: RootState): { denoising_start: nu
           denoising_end: 1,
         };
       } else {
-        // FLUX.1 and FLUX.2 Klein: We rescale the img2imgStrength (with exponent 0.2) to effectively use the entire
-        // range [0, 1] and make the scale more user-friendly. Without this, most of the 'change' is concentrated in
-        // the high denoise strength range (>0.9).
+        // FLUX.1, FLUX.2 Klein and Chroma: We rescale the img2imgStrength (with exponent 0.2) to effectively use the
+        // entire range [0, 1] and make the scale more user-friendly. Without this, most of the 'change' is concentrated
+        // in the high denoise strength range (>0.9) - especially true for Chroma, which only transforms at very high
+        // denoise strengths.
         const exponent = optimizedDenoisingEnabled ? 0.2 : 1;
         return {
           denoising_start: 1 - denoisingStrength ** exponent,
