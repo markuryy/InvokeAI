@@ -164,7 +164,7 @@ flux_dev = StarterModel(
 chroma_hd_quantized = StarterModel(
     name="Chroma1-HD (GGUF Q8)",
     base=BaseModelType.Chroma,
-    source="silveroxides/Chroma-GGUF::Chroma1-HD/Chroma1-HD-Q8_0.gguf",
+    source="https://huggingface.co/silveroxides/Chroma-GGUF/resolve/main/Chroma1-HD/Chroma1-HD-Q8_0.gguf",
     description="Chroma1-HD transformer (de-distilled FLUX.1-schnell), GGUF Q8 quantized. "
     "Total size with dependencies: ~20GB",
     type=ModelType.Main,
