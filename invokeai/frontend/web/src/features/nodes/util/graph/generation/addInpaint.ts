@@ -67,6 +67,7 @@ export const addInpaint = async ({
     denoise.type === 'qwen_image_denoise' ||
     denoise.type === 'flux_denoise' ||
     denoise.type === 'flux2_denoise' ||
+    denoise.type === 'chroma_denoise' ||
     denoise.type === 'sd3_denoise' ||
     denoise.type === 'z_image_denoise' ||
     denoise.type === 'anima_denoise'
