@@ -7,6 +7,7 @@ import { addImageToImage } from 'features/nodes/util/graph/generation/addImageTo
 import { addInpaint } from 'features/nodes/util/graph/generation/addInpaint';
 import { addNSFWChecker } from 'features/nodes/util/graph/generation/addNSFWChecker';
 import { addOutpaint } from 'features/nodes/util/graph/generation/addOutpaint';
+import { addRegions } from 'features/nodes/util/graph/generation/addRegions';
 import { addTextToImage } from 'features/nodes/util/graph/generation/addTextToImage';
 import { addWatermarker } from 'features/nodes/util/graph/generation/addWatermarker';
 import { Graph } from 'features/nodes/util/graph/generation/Graph';
@@ -87,9 +88,22 @@ export const buildChromaGraph = async (arg: GraphBuilderArg): Promise<GraphBuild
   g.addEdge(modelLoader, 't5_encoder', negCond, 't5_encoder');
   g.addEdge(modelLoader, 'vae', l2i, 'vae');
 
+  // Route conditioning through collectors so regional guidance can append per-region conditioning. With no
+  // regions, each collector simply carries the single base conditioning (chroma_denoise accepts a list).
+  const posCondCollect = g.addNode({
+    type: 'collect',
+    id: getPrefixedId('pos_cond_collect'),
+  });
+  const negCondCollect = g.addNode({
+    type: 'collect',
+    id: getPrefixedId('neg_cond_collect'),
+  });
+
   g.addEdge(positivePrompt, 'value', posCond, 'prompt');
-  g.addEdge(posCond, 'conditioning', denoise, 'positive_text_conditioning');
-  g.addEdge(negCond, 'conditioning', denoise, 'negative_text_conditioning');
+  g.addEdge(posCond, 'conditioning', posCondCollect, 'item');
+  g.addEdge(negCond, 'conditioning', negCondCollect, 'item');
+  g.addEdge(posCondCollect, 'collection', denoise, 'positive_text_conditioning');
+  g.addEdge(negCondCollect, 'collection', denoise, 'negative_text_conditioning');
 
   g.addEdge(seed, 'value', denoise, 'seed');
   g.addEdge(denoise, 'latents', l2i, 'latents');
@@ -117,6 +131,31 @@ export const buildChromaGraph = async (arg: GraphBuilderArg): Promise<GraphBuild
       g.addEdge(modelLoader, 'vae', denoise, 'controlnet_vae');
     } else {
       g.deleteNode(controlNetCollector.id);
+    }
+
+    // Regional guidance. Unlike FLUX, Chroma uses CFG, so regional negative prompts and auto-negative all work.
+    // Chroma has no IP-Adapter/Redux support, so the ip-adapter collector is only a placeholder (regions with
+    // reference images are rejected by the validator) and is removed if unused.
+    const ipAdapterCollect = g.addNode({
+      type: 'collect',
+      id: getPrefixedId('ip_adapter_collect'),
+    });
+    const regionsResults = await addRegions({
+      manager,
+      regions: canvas.regionalGuidance.entities,
+      g,
+      bbox: canvas.bbox.rect,
+      model,
+      posCond,
+      negCond,
+      posCondCollect,
+      negCondCollect,
+      ipAdapterCollect,
+      fluxReduxCollect: null,
+    });
+    const addedIPAdapters = regionsResults.reduce((count, r) => count + r.addedIPAdapters, 0);
+    if (addedIPAdapters === 0) {
+      g.deleteNode(ipAdapterCollect.id);
     }
   }
 

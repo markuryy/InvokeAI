@@ -85,6 +85,14 @@ export const getRegionalGuidanceWarnings = (
       }
     }
 
+    if (model.base === 'chroma') {
+      // Chroma uses CFG, so it fully supports regional negative prompts and auto-negative. It has no
+      // IP-Adapter / reference-image support, though.
+      if (entity.referenceImages.length > 0) {
+        warnings.push(WARNINGS.RG_REFERENCE_IMAGES_NOT_SUPPORTED);
+      }
+    }
+
     entity.referenceImages.forEach(({ config }) => {
       if (!config.model) {
         // No model selected
