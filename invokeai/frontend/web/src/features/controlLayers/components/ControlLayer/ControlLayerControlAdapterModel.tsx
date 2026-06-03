@@ -2,6 +2,7 @@ import { Combobox, FormControl, Tooltip } from '@invoke-ai/ui-library';
 import { useAppSelector } from 'app/store/storeHooks';
 import { useGroupedModelCombobox } from 'common/hooks/useGroupedModelCombobox';
 import { selectBase } from 'features/controlLayers/store/paramsSlice';
+import { isControlNetCompatibleWithMainModelBase } from 'features/modelManagerV2/models';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useControlLayerModels } from 'services/api/hooks/modelsByType';
@@ -35,12 +36,27 @@ export const ControlLayerControlAdapterModel = memo(({ modelKey, onChange: onCha
 
   const getIsDisabled = useCallback(
     (model: AnyModelConfig): boolean => {
-      const isCompatible = currentBaseModel === model.base;
-      const hasMainModel = Boolean(currentBaseModel);
-      return !hasMainModel || !isCompatible;
+      if (!currentBaseModel) {
+        return true;
+      }
+      // Chroma reuses FLUX ControlNets, but FLUX Control LoRA has no Chroma support.
+      if (currentBaseModel === 'chroma' && model.type === 'control_lora') {
+        return true;
+      }
+      return !isControlNetCompatibleWithMainModelBase(currentBaseModel, model.base);
     },
     [currentBaseModel]
   );
+
+  const isSelectedModelCompatible = useMemo(() => {
+    if (!currentBaseModel || !selectedModel) {
+      return false;
+    }
+    if (currentBaseModel === 'chroma' && selectedModel.type === 'control_lora') {
+      return false;
+    }
+    return isControlNetCompatibleWithMainModelBase(currentBaseModel, selectedModel.base);
+  }, [currentBaseModel, selectedModel]);
 
   const { options, value, onChange, noOptionsMessage } = useGroupedModelCombobox({
     modelConfigs,
@@ -53,7 +69,7 @@ export const ControlLayerControlAdapterModel = memo(({ modelKey, onChange: onCha
 
   return (
     <Tooltip label={selectedModel?.description}>
-      <FormControl isInvalid={!value || currentBaseModel !== selectedModel?.base} w="full">
+      <FormControl isInvalid={!value || !isSelectedModelCompatible} w="full">
         <Combobox
           options={options}
           placeholder={t('common.placeholderSelectAModel')}

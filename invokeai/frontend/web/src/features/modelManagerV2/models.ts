@@ -299,6 +299,25 @@ export const isLoRACompatibleWithMainModelBase = (modelBase: BaseModelType, lora
   return false;
 };
 
+/**
+ * ControlNet base-model compatibility. Chroma reuses FLUX-architecture ControlNets (InstantX/Union, XLabs):
+ * they probe as base 'flux', and because Chroma's transformer blocks share FLUX's dimensions, the ControlNet
+ * block residuals inject cleanly. They typically need lower control weights (~0.3-0.5) on Chroma. Control LoRA
+ * is intentionally excluded (it is a FLUX-specific structural-conditioning mechanism with no Chroma support).
+ */
+export const isControlNetCompatibleWithMainModelBase = (
+  modelBase: BaseModelType,
+  controlNetBase: BaseModelType
+): boolean => {
+  if (modelBase === controlNetBase) {
+    return true;
+  }
+  if (modelBase === 'chroma' && controlNetBase === 'flux') {
+    return true;
+  }
+  return false;
+};
+
 export const SUPPORTS_OPTIMIZED_DENOISING_BASE_MODELS: BaseModelType[] = ['flux', 'sd-3'];
 
 export const SUPPORTS_REF_IMAGES_BASE_MODELS: BaseModelType[] = ['sd-1', 'sdxl', 'flux', 'flux2', 'qwen-image'];

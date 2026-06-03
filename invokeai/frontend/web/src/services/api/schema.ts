@@ -5755,6 +5755,17 @@ export type components = {
              */
             negative_text_conditioning?: components["schemas"]["FluxConditioningField"] | components["schemas"]["FluxConditioningField"][] | null;
             /**
+             * Control
+             * @description ControlNet models. Chroma reuses FLUX-architecture ControlNets (e.g. InstantX/Union, XLabs); they generally need lower control weights (~0.3-0.5) on Chroma.
+             * @default null
+             */
+            control?: components["schemas"]["FluxControlNetField"] | components["schemas"]["FluxControlNetField"][] | null;
+            /**
+             * @description VAE
+             * @default null
+             */
+            controlnet_vae?: components["schemas"]["VAEField"] | null;
+            /**
              * CFG Scale
              * @description Classifier-Free Guidance scale
              * @default 4

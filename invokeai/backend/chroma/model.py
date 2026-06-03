@@ -161,7 +161,13 @@ class Chroma(nn.Module):
         timesteps: Tensor,
         guidance: Tensor,
         regional_prompting_extension: RegionalPromptingExtension,
+        controlnet_double_block_residuals: list[Tensor] | None = None,
+        controlnet_single_block_residuals: list[Tensor] | None = None,
     ) -> Tensor:
+        # ControlNet residuals are produced by FLUX-architecture ControlNets (InstantX / XLabs). Chroma's
+        # double/single blocks share FLUX's hidden size and block counts, so the residuals are dimensionally
+        # compatible and are injected additively exactly as in FLUX. The ControlNet itself runs independently
+        # in the denoise loop (it sees Chroma's T5 conditioning with zeroed CLIP/guidance).
         if img.ndim != 3 or txt.ndim != 3:
             raise ValueError("Input img and txt tensors must have 3 dimensions.")
 
@@ -191,6 +197,9 @@ class Chroma(nn.Module):
         ids = torch.cat((txt_ids, img_ids), dim=1)
         pe = self.pe_embedder(ids)
 
+        if controlnet_double_block_residuals is not None:
+            assert len(controlnet_double_block_residuals) == len(self.double_blocks)
+
         double_block: DoubleStreamBlock
         for block_index, double_block in enumerate(self.double_blocks):
             double_mod = (
@@ -207,7 +216,13 @@ class Chroma(nn.Module):
                 regional_prompting_extension=regional_prompting_extension,
             )
 
+            if controlnet_double_block_residuals is not None:
+                img = img + controlnet_double_block_residuals[block_index]
+
         img = torch.cat((txt, img), 1)
+
+        if controlnet_single_block_residuals is not None:
+            assert len(controlnet_single_block_residuals) == len(self.single_blocks)
 
         single_block: SingleStreamBlock
         for block_index, single_block in enumerate(self.single_blocks):
@@ -220,6 +235,9 @@ class Chroma(nn.Module):
                 pe=pe,
                 regional_prompting_extension=regional_prompting_extension,
             )
+
+            if controlnet_single_block_residuals is not None:
+                img[:, txt.shape[1] :, ...] += controlnet_single_block_residuals[block_index]
 
         img = img[:, txt.shape[1] :, ...]
 

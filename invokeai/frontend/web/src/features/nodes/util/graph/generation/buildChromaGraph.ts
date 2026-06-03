@@ -1,7 +1,8 @@
 import { logger } from 'app/logging/logger';
 import { getPrefixedId } from 'features/controlLayers/konva/util';
 import { selectMainModelConfig, selectParamsSlice } from 'features/controlLayers/store/paramsSlice';
-import { selectCanvasMetadata } from 'features/controlLayers/store/selectors';
+import { selectCanvasMetadata, selectCanvasSlice } from 'features/controlLayers/store/selectors';
+import { addControlNets } from 'features/nodes/util/graph/generation/addControlAdapters';
 import { addImageToImage } from 'features/nodes/util/graph/generation/addImageToImage';
 import { addInpaint } from 'features/nodes/util/graph/generation/addInpaint';
 import { addNSFWChecker } from 'features/nodes/util/graph/generation/addNSFWChecker';
@@ -30,6 +31,7 @@ export const buildChromaGraph = async (arg: GraphBuilderArg): Promise<GraphBuild
   assert(model.base === 'chroma', 'Selected model is not a Chroma model');
 
   const params = selectParamsSlice(state);
+  const canvas = selectCanvasSlice(state);
 
   const { cfgScale: cfg_scale, steps, fluxVAE, t5EncoderModel, chromaSchedule } = params;
 
@@ -93,6 +95,30 @@ export const buildChromaGraph = async (arg: GraphBuilderArg): Promise<GraphBuild
   g.addEdge(denoise, 'latents', l2i, 'latents');
 
   addChromaLoRAs(state, g, denoise, modelLoader, posCond, negCond);
+
+  // ControlNet. Chroma reuses FLUX-architecture ControlNets (their block residuals are dimensionally
+  // compatible with Chroma's transformer). Requires the canvas manager to rasterize control layers.
+  if (manager !== null) {
+    const controlNetCollector = g.addNode({
+      type: 'collect',
+      id: getPrefixedId('control_net_collector'),
+    });
+    const controlNetResult = await addControlNets({
+      manager,
+      entities: canvas.controlLayers.entities,
+      g,
+      rect: canvas.bbox.rect,
+      collector: controlNetCollector,
+      model,
+    });
+    if (controlNetResult.addedControlNets > 0) {
+      g.addEdge(controlNetCollector, 'collection', denoise, 'control');
+      // InstantX/Union ControlNets VAE-encode their control image; reuse the FLUX VAE from the loader.
+      g.addEdge(modelLoader, 'vae', denoise, 'controlnet_vae');
+    } else {
+      g.deleteNode(controlNetCollector.id);
+    }
+  }
 
   g.upsertMetadata({
     cfg_scale,

@@ -1,4 +1,5 @@
 import re
+from contextlib import ExitStack
 from typing import Callable, Iterator, Literal, Optional, Tuple
 
 import torch
@@ -13,8 +14,9 @@ from invokeai.app.invocations.fields import (
     LatentsField,
     WithMetadata,
 )
+from invokeai.app.invocations.flux_controlnet import FluxControlNetField
 from invokeai.app.invocations.flux_denoise import FluxDenoiseInvocation
-from invokeai.app.invocations.model import TransformerField
+from invokeai.app.invocations.model import TransformerField, VAEField
 from invokeai.app.invocations.primitives import LatentsOutput
 from invokeai.app.services.shared.invocation_context import InvocationContext
 from invokeai.backend.chroma.denoise import denoise
@@ -78,6 +80,17 @@ class ChromaDenoiseInvocation(BaseInvocation, WithMetadata):
         description="Negative conditioning tensor. Can be None if cfg_scale is 1.0.",
         input=Input.Connection,
     )
+    control: FluxControlNetField | list[FluxControlNetField] | None = InputField(
+        default=None,
+        input=Input.Connection,
+        description="ControlNet models. Chroma reuses FLUX-architecture ControlNets (e.g. InstantX/Union, XLabs); "
+        "they generally need lower control weights (~0.3-0.5) on Chroma.",
+    )
+    controlnet_vae: VAEField | None = InputField(
+        default=None,
+        description=FieldDescriptions.vae,
+        input=Input.Connection,
+    )
     cfg_scale: float | list[float] = InputField(default=4.0, description=FieldDescriptions.cfg_scale, title="CFG Scale")
     cfg_scale_start_step: int = InputField(
         default=0,
@@ -103,7 +116,11 @@ class ChromaDenoiseInvocation(BaseInvocation, WithMetadata):
     )
     seed: int = InputField(default=0, description="Randomness seed for reproducibility.")
 
-    @torch.inference_mode()
+    # NOTE: Use no_grad (not inference_mode) to match FluxDenoiseInvocation. inference_mode marks newly
+    # created tensors as "inference tensors", which cannot be wrapped as nn.Parameter (requires_grad=True).
+    # The shared FLUX ControlNet loader does exactly that (load_state_dict(assign=True)) when a ControlNet is
+    # loaded on a cold cache during this invocation, so inference_mode would raise.
+    @torch.no_grad()
     def invoke(self, context: InvocationContext) -> LatentsOutput:
         latents = self._run_diffusion(context)
         latents = latents.detach().to("cpu")
@@ -184,12 +201,23 @@ class ChromaDenoiseInvocation(BaseInvocation, WithMetadata):
             self.cfg_scale, timesteps, self.cfg_scale_start_step, self.cfg_scale_end_step
         )
 
-        with transformer_info.model_on_device() as (cached_weights, transformer):
-            assert isinstance(transformer, Chroma)
+        with ExitStack() as exit_stack:
+            # Prepare ControlNet extensions before loading the transformer to keep peak memory down. These reuse
+            # FLUX's ControlNet model/extension stack (the residuals are dimensionally compatible with Chroma's
+            # blocks); _prep_controlnet_extensions only reads self.control / self.controlnet_vae.
+            controlnet_extensions = FluxDenoiseInvocation._prep_controlnet_extensions(
+                self,  # type: ignore[arg-type]
+                context=context,
+                exit_stack=exit_stack,
+                latent_height=latent_h,
+                latent_width=latent_w,
+                dtype=inference_dtype,
+                device=device,
+            )
 
-            from contextlib import ExitStack
+            with transformer_info.model_on_device() as (cached_weights, transformer):
+                assert isinstance(transformer, Chroma)
 
-            with ExitStack() as exit_stack:
                 if self.transformer.loras:
                     exit_stack.enter_context(
                         LayerPatcher.apply_smart_model_patches(
@@ -214,6 +242,7 @@ class ChromaDenoiseInvocation(BaseInvocation, WithMetadata):
                     timesteps=timesteps,
                     cfg_scale=cfg_scale,
                     inpaint_extension=inpaint_extension,
+                    controlnet_extensions=controlnet_extensions,
                     step_callback=self._build_step_callback(context),
                 )
 

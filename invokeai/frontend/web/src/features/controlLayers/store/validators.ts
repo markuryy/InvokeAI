@@ -5,6 +5,7 @@ import type {
   CanvasRegionalGuidanceState,
   RefImageState,
 } from 'features/controlLayers/store/types';
+import { isControlNetCompatibleWithMainModelBase } from 'features/modelManagerV2/models';
 import type { ModelIdentifierField } from 'features/nodes/types/common';
 import {
   type AnyModelConfigWithExternal,
@@ -187,7 +188,11 @@ export const getControlLayerWarnings = (
     if (model.base === 'sd-3' || model.base === 'sd-2' || model.base === 'anima') {
       // Unsupported model architecture
       warnings.push(WARNINGS.UNSUPPORTED_MODEL);
-    } else if (entity.controlAdapter.model.base !== model.base) {
+    } else if (model.base === 'chroma' && entity.controlAdapter.type === 'control_lora') {
+      // Chroma reuses FLUX ControlNets, but FLUX Control LoRA is a FLUX-specific structural mechanism with no
+      // Chroma support.
+      warnings.push(WARNINGS.UNSUPPORTED_MODEL);
+    } else if (!isControlNetCompatibleWithMainModelBase(model.base, entity.controlAdapter.model.base)) {
       // Supported model architecture but doesn't match
       warnings.push(WARNINGS.CONTROL_ADAPTER_INCOMPATIBLE_BASE_MODEL);
     } else if (
