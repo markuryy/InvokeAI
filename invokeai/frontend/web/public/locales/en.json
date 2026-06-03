@@ -2721,6 +2721,7 @@
         "addDenoiseLimit": "Add $t(controlLayers.denoiseLimit)",
         "rasterLayer": "Raster Layer",
         "controlLayer": "Control Layer",
+        "clearMask": "Clear",
         "inpaintMask": "Inpaint Mask",
         "invertMask": "Invert Mask",
         "invertRegion": "Invert Region",

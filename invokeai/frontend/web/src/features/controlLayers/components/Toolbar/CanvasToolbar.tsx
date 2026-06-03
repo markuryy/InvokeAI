@@ -9,6 +9,7 @@ import { ToolLassoModeToggle } from 'features/controlLayers/components/Tool/Tool
 import { ToolOptionsRowContainer } from 'features/controlLayers/components/Tool/ToolOptionsRowContainer';
 import { ToolShapeTypeToggle } from 'features/controlLayers/components/Tool/ToolShapeTypeToggle';
 import { ToolWidthPicker } from 'features/controlLayers/components/Tool/ToolWidthPicker';
+import { CanvasToolbarClearMaskButton } from 'features/controlLayers/components/Toolbar/CanvasToolbarClearMaskButton';
 import { CanvasToolbarFitBboxToLayersButton } from 'features/controlLayers/components/Toolbar/CanvasToolbarFitBboxToLayersButton';
 import { CanvasToolbarFitBboxToMasksButton } from 'features/controlLayers/components/Toolbar/CanvasToolbarFitBboxToMasksButton';
 import { CanvasToolbarNewSessionMenuButton } from 'features/controlLayers/components/Toolbar/CanvasToolbarNewSessionMenuButton';
@@ -84,6 +85,7 @@ export const CanvasToolbar = memo(() => {
           </Box>
         )}
         {isTextSelected ? <TextToolOptions /> : showToolWithPicker && <ToolWidthPicker />}
+        <CanvasToolbarClearMaskButton />
       </ToolOptionsRowContainer>
       <Flex alignItems="center" h="full" flexGrow={1} flexShrink={0} justifyContent="flex-end" minW="fit-content">
         <CanvasToolbarScale />
